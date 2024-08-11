@@ -4,6 +4,8 @@
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "GameTimeSubsystem.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FGameTimeEvent);
+
 UCLASS()
 class TJON_API UGameTimeSubsystem : public UTickableWorldSubsystem
 {
@@ -13,6 +15,12 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 	virtual void Tick(float DeltaTime) override;
+	virtual TStatId GetStatId() const override;
+
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FGameTimeEvent OnMinutesChanged;
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FGameTimeEvent OnHoursChanged;
 
 #pragma region Getters
 
@@ -21,6 +29,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Game Time Subsystem Getters")
 	int GetMinutes() const;
+
+	UFUNCTION(BlueprintPure, Category = "Game Time Subsystem Getters")
+	int GetSeconds() const;
+
+	UFUNCTION(BlueprintPure, Category = "Game Time Subsystem Getters")
+	bool ItsMaxTime() const;
 
 #pragma endregion
 
@@ -50,9 +64,16 @@ public:
 #pragma endregion
 
 private:
-	const int MinTime = 0.0f;
-	const int MaxTime = 7.0f * 3600.0f;
+	const int MinTime = 0;
+	const int MaxTime = 7 * 3600;
+	const float SpeedScale = 60.0f;
+
+	int Minutes = 0;
+	int Hours = 0;
 
 	float TimeScale = 1.0f;
-	float TimeInSeconds = 0.0f;
+	float Seconds = 0.0f;
+
+	void SetMinutes(int NewMinutes);
+	void SetHours(int NewHours);
 };

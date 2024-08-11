@@ -6,7 +6,7 @@ void UGameTimeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 
-	TimeScale = 0.0f;
+	Seconds = 0.0f;
 }
 
 void UGameTimeSubsystem::Deinitialize()
@@ -16,7 +16,15 @@ void UGameTimeSubsystem::Deinitialize()
 
 void UGameTimeSubsystem::Tick(float DeltaTime)
 {
-	TimeInSeconds += DeltaTime * TimeScale;
+	Seconds += DeltaTime * TimeScale * SpeedScale;
+
+	SetMinutes(GetMinutes());
+	SetHours(GetHours());
+}
+
+TStatId UGameTimeSubsystem::GetStatId() const
+{
+	RETURN_QUICK_DECLARE_CYCLE_STAT(UGameTimeSubsystem, STATGROUP_Tickables);
 }
 
 #pragma endregion
@@ -25,12 +33,22 @@ void UGameTimeSubsystem::Tick(float DeltaTime)
 
 int UGameTimeSubsystem::GetHours() const
 {
-	return (int)(TimeInSeconds / 3600);
+	return (int)(Seconds / 3600);
 }
 
 int UGameTimeSubsystem::GetMinutes() const
 {
-	return (int)TimeInSeconds % 3600;
+	return Seconds / 60 - GetHours() * 60;
+}
+
+int UGameTimeSubsystem::GetSeconds() const
+{
+	return (int)Seconds % 60;
+}
+
+bool UGameTimeSubsystem::ItsMaxTime() const
+{
+	return Seconds >= MaxTime;
 }
 
 #pragma endregion
@@ -44,35 +62,50 @@ void UGameTimeSubsystem::ChangeTimeScale(float NewTimeScale)
 
 void UGameTimeSubsystem::AddSeconds(float SecondsToAdd)
 {
-	TimeInSeconds = FMath::Clamp(TimeInSeconds + SecondsToAdd, MinTime, MaxTime);
+	Seconds = FMath::Clamp(Seconds + SecondsToAdd, MinTime, MaxTime);
 }
 
 void UGameTimeSubsystem::AddMinutes(float MinutesToAdd)
 {
-	AddSeconds(MinutesToAdd * 60);
+	SetMinutes(Minutes + MinutesToAdd * 60);
 }
 
 void UGameTimeSubsystem::AddHours(float HoursToAdd)
 {
-	AddSeconds(HoursToAdd * 3600);
+	SetHours(Hours + HoursToAdd * 3600);
 }
 
 void UGameTimeSubsystem::RemoveSeconds(float SecondsToRemove)
 {
-	TimeInSeconds = FMath::Clamp(TimeInSeconds - SecondsToRemove, MinTime, MaxTime);
+	Seconds = FMath::Clamp(Seconds - SecondsToRemove, MinTime, MaxTime);
 }
 
 void UGameTimeSubsystem::RemoveMinutes(float MinutesToRemove)
 {
-	RemoveSeconds(MinutesToRemove * 60);
+	SetMinutes(Minutes - MinutesToRemove * 60);
 }
 
 void UGameTimeSubsystem::RemoveHours(float HoursToRemove)
 {
-	RemoveSeconds(HoursToRemove * 3600);
+	SetHours(Hours - HoursToRemove * 3600);
 }
 
 #pragma endregion
 
+void UGameTimeSubsystem::SetMinutes(int NewMinutes)
+{
+	if (NewMinutes != Minutes)
+	{
+		Minutes = NewMinutes;
+		OnMinutesChanged.Broadcast();
+	}
+}
 
-
+void UGameTimeSubsystem::SetHours(int NewHours)
+{
+	if (NewHours != Minutes)
+	{
+		Hours = NewHours;
+		OnHoursChanged.Broadcast();
+	}
+}
